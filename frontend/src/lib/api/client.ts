@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { PublicClientApplication } from '@azure/msal-browser'
-import { msalConfig } from '@/lib/auth/msalConfig'
+import { msalConfig, loginRequest } from '@/lib/auth/msalConfig'
 
 let msalInstance: PublicClientApplication | undefined
 
@@ -16,7 +16,8 @@ function getMsalInstance(): PublicClientApplication {
 }
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  timeout: 10000, // 10 second timeout
 })
 
 apiClient.interceptors.request.use(
@@ -31,7 +32,7 @@ apiClient.interceptors.request.use(
 
       const response = await instance.acquireTokenSilent({
         account: accounts[0],
-        scopes: ['openid', 'profile'],
+        scopes: loginRequest.scopes, // Use scopes from loginRequest
       })
 
       config.headers.Authorization = `Bearer ${response.accessToken}`
@@ -42,6 +43,24 @@ apiClient.interceptors.request.use(
     }
   },
   (error) => Promise.reject(error)
+)
+
+// Response interceptor for better error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === 'ECONNREFUSED' || error.message.includes('ERR_CONNECTION_REFUSED')) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      error.message = `Cannot connect to backend API at ${apiUrl}. Please ensure the backend server is running.`
+    } else if (error.response) {
+      // Server responded with error status
+      error.message = error.response.data?.error?.message || error.message
+    } else if (error.request) {
+      // Request made but no response
+      error.message = 'No response from server. Please check if the backend is running.'
+    }
+    return Promise.reject(error)
+  }
 )
 
 export default apiClient

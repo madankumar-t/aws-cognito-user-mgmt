@@ -91,14 +91,21 @@ pip install -r requirements.txt
 
 3. Configure environment variables:
 ```bash
-cp .env.example .env
-# Edit .env with your configuration
+# Create .env file
+# Add these required variables:
+# ENTRA_ID_TENANT_ID=your-tenant-id
+# ENTRA_ID_CLIENT_ID=your-client-id
+# ENTRA_ID_AUDIENCE=api://your-client-id
+# ALLOWED_ACCOUNTS=123456789012,987654321098  # Your AWS account IDs
+# ALLOWED_ORIGINS=http://localhost:3000
 ```
 
 4. Run locally:
 ```bash
 uvicorn src.main:app --reload --port 8000
 ```
+
+**Important**: The backend must be running for the frontend to work!
 
 ### Frontend Setup
 

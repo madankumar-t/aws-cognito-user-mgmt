@@ -16,5 +16,10 @@ async def list_accounts(
 ) -> List[AccountResponse]:
     """Lists AWS accounts user has access to."""
     accounts = config_service.get_accounts()
+    
+    if not accounts:
+        # Return empty list - frontend will handle the message
+        return []
+    
     return [AccountResponse(**account) for account in accounts]
 

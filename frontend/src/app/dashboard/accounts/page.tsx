@@ -20,10 +20,17 @@ export default function AccountsPage() {
   const loadAccounts = async () => {
     try {
       setLoading(true)
+      setError(null)
       const data = await getAccounts()
       setAccounts(data)
+      
+      if (data.length === 0) {
+        setError('No AWS accounts configured. Please configure ALLOWED_ACCOUNTS in backend .env file.')
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to load accounts')
+      console.error('Error loading accounts:', err)
+      const errorMessage = err.response?.data?.error?.message || err.message || 'Failed to load accounts'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -43,9 +50,30 @@ export default function AccountsPage() {
   }
 
   if (error) {
+    const isConnectionError = error.includes('Cannot connect') || error.includes('ERR_CONNECTION_REFUSED')
+    
     return (
       <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-red-800">{error}</p>
+        <p className="text-red-800 font-semibold mb-2">Network Error</p>
+        <p className="text-red-700 text-sm mb-4">{error}</p>
+        {isConnectionError && (
+          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
+            <p className="text-yellow-800 font-semibold mb-2">Backend Not Running</p>
+            <p className="text-yellow-700 text-sm mb-2">To fix this:</p>
+            <ol className="list-decimal list-inside text-yellow-700 text-sm space-y-1">
+              <li>Open a terminal and navigate to the <code className="bg-yellow-100 px-1 rounded">backend</code> directory</li>
+              <li>Start the backend server: <code className="bg-yellow-100 px-1 rounded">uvicorn src.main:app --reload</code></li>
+              <li>Verify it's running at: <code className="bg-yellow-100 px-1 rounded">http://localhost:8000</code></li>
+              <li>Refresh this page</li>
+            </ol>
+          </div>
+        )}
+        <button
+          onClick={loadAccounts}
+          className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+        >
+          Retry
+        </button>
       </div>
     )
   }

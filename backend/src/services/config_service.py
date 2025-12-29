@@ -24,11 +24,26 @@ class ConfigService:
                 for account_id in accounts_str.split(","):
                     account_id = account_id.strip()
                     if account_id:
+                        # Extract account name if provided in format "account-id:Account Name"
+                        if ":" in account_id:
+                            account_id, account_name = account_id.split(":", 1)
+                            account_id = account_id.strip()
+                            account_name = account_name.strip()
+                        else:
+                            account_name = f"Account {account_id}"
+                        
                         accounts[account_id] = {
                             "id": account_id,
-                            "name": f"Account {account_id}",
+                            "name": account_name,
                             "regions": self._get_all_regions()
                         }
+            else:
+                logger.warning(
+                    "ALLOWED_ACCOUNTS environment variable is not set. No accounts will be available.",
+                    extra={
+                        "event": "no_accounts_configured"
+                    }
+                )
         
         return accounts
     

@@ -26,33 +26,60 @@ export function useAuth() {
   const [roles, setRoles] = useState<AppRole[]>([])
 
   useEffect(() => {
-    if (!isAuthenticated || !account) return
+    if (!isAuthenticated || !account) {
+      setToken(null)
+      setRoles([])
+      return
+    }
 
     const loadAuthData = async () => {
-      const accessToken = await getAccessToken()
-      if (!accessToken) return
+      try {
+        const accessToken = await getAccessToken()
+        if (!accessToken) {
+          console.warn('No access token available')
+          return
+        }
 
-      setToken(accessToken)
+        setToken(accessToken)
 
-      // 👇 IMPORTANT: explicitly type idTokenClaims
-      const claims = account.idTokenClaims as EntraIdTokenClaims | undefined
+        // 👇 IMPORTANT: explicitly type idTokenClaims
+        const claims = account.idTokenClaims as EntraIdTokenClaims | undefined
 
-      // Prefer App Roles, fallback to Groups
-      const rawValues: string[] = claims?.roles ?? claims?.groups ?? []
+        // Debug: Log claims to help troubleshoot
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Token Claims:', {
+            groups: claims?.groups,
+            roles: claims?.roles,
+            allClaims: claims
+          })
+        }
 
-      const extractedRoles: AppRole[] = rawValues
-        .map((value) => {
-          if (value === 'cognito-admin') return 'Admin'
-          if (value === 'cognito-developer') return 'Developer'
-          return null
-        })
-        .filter((r): r is AppRole => r !== null)
+        // Prefer App Roles, fallback to Groups
+        const rawValues: string[] = claims?.roles ?? claims?.groups ?? []
 
-      setRoles(extractedRoles)
+        const extractedRoles: AppRole[] = rawValues
+          .map((value) => {
+            if (value === 'cognito-admin') return 'Admin'
+            if (value === 'cognito-developer') return 'Developer'
+            return null
+          })
+          .filter((r): r is AppRole => r !== null)
+
+        setRoles(extractedRoles)
+
+        // Warn if no roles found
+        if (extractedRoles.length === 0 && rawValues.length > 0) {
+          console.warn('User has groups/roles but none match required roles:', rawValues)
+        } else if (rawValues.length === 0) {
+          console.warn('User has no groups or roles in token. Ensure app is configured to emit group/role claims.')
+        }
+      } catch (error) {
+        console.error('Error loading auth data:', error)
+      }
     }
 
     loadAuthData()
-  }, [isAuthenticated, account])
+  }, [isAuthenticated, account, instance])
 
   const login = async () => {
     await instance.loginPopup(loginRequest)

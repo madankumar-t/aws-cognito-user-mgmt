@@ -2,6 +2,7 @@
 
 from pydantic_settings import BaseSettings
 from typing import List, Optional
+from pydantic import field_validator
 import os
 
 
@@ -20,7 +21,8 @@ class Settings(BaseSettings):
     
     # Application Configuration
     log_level: str = "INFO"
-    allowed_origins: List[str] = ["http://localhost:3000"]
+    # Store as string, will be converted to list
+    allowed_origins: str = "http://localhost:3000"
     
     # Role Mapping
     admin_group_name: str = "cognito-admin"
@@ -33,6 +35,14 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra environment variables not defined in Settings
+    
+    @property
+    def allowed_origins_list(self) -> List[str]:
+        """Get allowed_origins as a list."""
+        if isinstance(self.allowed_origins, str):
+            return [origin.strip() for origin in self.allowed_origins.split(',') if origin.strip()]
+        return self.allowed_origins if isinstance(self.allowed_origins, list) else ["http://localhost:3000"]
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

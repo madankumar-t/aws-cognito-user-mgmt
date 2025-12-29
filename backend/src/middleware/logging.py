@@ -11,6 +11,9 @@ logger = get_logger(__name__)
 class LoggingMiddleware(BaseHTTPMiddleware):
     """Middleware for logging requests and responses."""
     
+    def __init__(self, app):
+        super().__init__(app)
+    
     async def dispatch(self, request: Request, call_next):
         """Log request and response."""
         start_time = time.time()

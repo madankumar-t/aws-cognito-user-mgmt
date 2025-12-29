@@ -19,8 +19,14 @@ npm install
 
 2. Configure environment variables:
 ```bash
-cp .env.example .env.local
-# Edit .env.local with your configuration
+# Create .env.local file in frontend/ directory
+# Add the following variables:
+
+# NEXT_PUBLIC_API_URL=http://localhost:8000
+# NEXT_PUBLIC_ENTRA_TENANT_ID=your-tenant-id-here
+# NEXT_PUBLIC_ENTRA_CLIENT_ID=your-client-id-here
+
+# See ENV_SETUP.md for detailed instructions
 ```
 
 3. Run development server:
@@ -39,9 +45,11 @@ npm start
 
 ## Environment Variables
 
-- `NEXT_PUBLIC_API_URL` - Backend API URL
-- `NEXT_PUBLIC_ENTRA_ID_TENANT_ID` - Microsoft Entra ID tenant ID
-- `NEXT_PUBLIC_ENTRA_ID_CLIENT_ID` - Microsoft Entra ID client ID
-- `NEXT_PUBLIC_ENTRA_ID_AUTHORITY` - Microsoft Entra ID authority URL
-- `NEXT_PUBLIC_ENTRA_ID_REDIRECT_URI` - Redirect URI after authentication
+Create a `.env.local` file in the `frontend/` directory with:
+
+- `NEXT_PUBLIC_API_URL` - Backend API URL (e.g., `http://localhost:8000`)
+- `NEXT_PUBLIC_ENTRA_TENANT_ID` - Microsoft Entra ID tenant ID (from Azure Portal)
+- `NEXT_PUBLIC_ENTRA_CLIENT_ID` - Microsoft Entra ID client ID (from Azure Portal)
+
+**See `ENV_SETUP.md` for detailed setup instructions and where to find these values.**
 
