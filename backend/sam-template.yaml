@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS Cognito User Management API - Serverless Application
+
+Parameters:
+  EntraIdTenantId:
+    Type: String
+    Description: Microsoft Entra ID Tenant ID
+  EntraIdClientId:
+    Type: String
+    Description: Microsoft Entra ID Client ID
+  EntraIdAudience:
+    Type: String
+    Description: Microsoft Entra ID Audience
+  AccountRoleName:
+    Type: String
+    Default: CognitoManagementRole
+    Description: IAM role name in target accounts
+  AllowedOrigins:
+    Type: CommaDelimitedList
+    Default: http://localhost:3000
+    Description: Allowed CORS origins
+  LogLevel:
+    Type: String
+    Default: INFO
+    AllowedValues: [DEBUG, INFO, WARNING, ERROR, CRITICAL]
+    Description: Log level
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.12
+    Environment:
+      Variables:
+        ENTRA_ID_TENANT_ID: !Ref EntraIdTenantId
+        ENTRA_ID_CLIENT_ID: !Ref EntraIdClientId
+        ENTRA_ID_AUDIENCE: !Ref EntraIdAudience
+        JWKS_URL: !Sub 'https://login.microsoftonline.com/${EntraIdTenantId}/discovery/v2.0/keys'
+        ACCOUNT_ROLE_NAME: !Ref AccountRoleName
+        DEFAULT_REGION: us-east-1
+        LOG_LEVEL: !Ref LogLevel
+        ALLOWED_ORIGINS: !Join [',', !Ref AllowedOrigins]
+        ADMIN_GROUP_NAME: cognito-admin
+        DEVELOPER_GROUP_NAME: cognito-developer
+
+Resources:
+  CognitoManagementFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambda_handler.lambda_handler
+      CodeUri: .
+      Description: AWS Cognito User Management API
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - sts:AssumeRole
+              Resource: !Sub 'arn:aws:iam::*:role/${AccountRoleName}'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
+            - Effect: Allow
+              Action:
+                - cloudwatch:PutMetricData
+              Resource: '*'
+              Condition:
+                StringEquals:
+                  cloudwatch:namespace: CognitoManagement
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        RootApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+
+  CognitoManagementApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins: !Ref AllowedOrigins
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        MaxAge: 300
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${CognitoManagementApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+  FunctionName:
+    Description: Lambda Function Name
+    Value: !Ref CognitoManagementFunction
+  FunctionArn:
+    Description: Lambda Function ARN
+    Value: !GetAtt CognitoManagementFunction.Arn
+
